@@ -1,0 +1,117 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a civicrm_attendance_element element.
+ *
+ * Available variables:
+ * - element: The element.
+ * - attributes: HTML attributes for the containing element.
+ * - contacts: An array of contacts with relationship to the current user.
+ * - event_list: An array of events to display.
+ * - status_list: An array of participant statuses.
+ * - participant_records: Existing participant records.
+ * - allow_bulk_operations: Whether to show bulk operations.
+ * - show_relationship_info: Whether to show relationship info.
+ * - show_search: Whether to show search box.
+ *
+ * @see template_preprocess_civicrm_attendance_element()
+ *
+ * @ingroup themeable
+ */
+#}
+{% if contacts|length %}
+  <div class="civicrm-attendance-element">
+    
+    {% if show_search %}
+      <div class="civicrm-attendance-element-search">
+        <input type="text" class="civicrm-attendance-element-search-input" placeholder="{{ 'Search contacts...'|t }}" />
+      </div>
+    {% endif %}
+    
+    <div class="civicrm-attendance-element-container">
+      <table class="civicrm-attendance-element-table">
+        <thead>
+          <tr>
+            <th>{{ 'Contact'|t }}</th>
+            {% if show_relationship_info %}
+              <th>{{ 'Relationship'|t }}</th>
+            {% endif %}
+            {% for event_id, event in event_list %}
+              <th>{{ event.title }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for contact in contacts %}
+            <tr class="civicrm-attendance-element-contact-row">
+              <td class="civicrm-attendance-element-contact">
+                <div class="civicrm-attendance-element-contact-name">{{ contact.display_name }}</div>
+                {% if contact.email %}
+                  <div class="civicrm-attendance-element-contact-email">{{ contact.email }}</div>
+                {% endif %}
+              </td>
+              
+              {% if show_relationship_info %}
+                <td class="civicrm-attendance-element-relationship">
+                  <div class="civicrm-attendance-element-relationship-type">{{ contact.relationship.relationship_type }}</div>
+                  {% if contact.relationship.start_date or contact.relationship.end_date %}
+                    <div class="civicrm-attendance-element-relationship-dates">
+                      {% if contact.relationship.start_date %}
+                        <span class="civicrm-attendance-element-relationship-start-date">{{ 'From'|t }}: {{ contact.relationship.start_date }}</span>
+                      {% endif %}
+                      {% if contact.relationship.end_date %}
+                        <span class="civicrm-attendance-element-relationship-end-date">{{ 'To'|t }}: {{ contact.relationship.end_date }}</span>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                </td>
+              {% endif %}
+              
+              {% for event_id, event in event_list %}
+                <td class="civicrm-attendance-element-status">
+                  {% set default_value = participant_records[contact.id][event_id].status_id ?? 0 %}
+                  <select name="{{ element['#name'] }}[{{ contact.id }}][{{ event_id }}]" class="civicrm-attendance-element-status-select" data-contact-id="{{ contact.id }}" data-event-id="{{ event_id }}">
+                    <option value="">{{ '- None -'|t }}</option>
+                    {% for status_id, status_label in status_list %}
+                      <option value="{{ status_id }}" {% if status_id == default_value %}selected="selected"{% endif %}>{{ status_label }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    
+    {% if allow_bulk_operations and event_list|length %}
+      <div class="civicrm-attendance-element-bulk-operations">
+        <div class="civicrm-attendance-element-bulk-operation">
+          <label>{{ 'Event'|t }}:</label>
+          <select class="civicrm-attendance-element-bulk-event-select">
+            <option value="">{{ '- Select -'|t }}</option>
+            {% for event_id, event in event_list %}
+              <option value="{{ event_id }}">{{ event.title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="civicrm-attendance-element-bulk-operation">
+          <label>{{ 'Status'|t }}:</label>
+          <select class="civicrm-attendance-element-bulk-status-select" disabled>
+            <option value="">{{ '- None -'|t }}</option>
+            {% for status_id, status_label in status_list %}
+              <option value="{{ status_id }}">{{ status_label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="civicrm-attendance-element-bulk-operation">
+          <button type="button" class="civicrm-attendance-element-bulk-apply-button button" disabled>{{ 'Apply'|t }}</button>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="civicrm-attendance-element-empty">
+    {{ 'No contacts found with the specified relationship types and contact subtypes.'|t }}
+  </div>
+{% endif %}
