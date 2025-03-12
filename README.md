@@ -5,8 +5,8 @@
 The CiviCRM Attendance module provides a powerful integration between Drupal Webforms and CiviCRM for tracking event participation of contacts based on their relationship patterns with specific contact subtypes.
 
 The module specifically targets contacts who:
-1. Have one or more specified relationship types to contacts of a specified subtype
-2. Where the current user also has at least one of those same relationship types to contacts of the specified subtype
+1. Have one or more specified relationship types to contacts of a specified subtype (e.g., "Team")
+2. Where the current user also has a relationship with that same "Team" contact
 3. Can be filtered further by event date ranges and participation status
 
 This allows you to efficiently manage event participation for contacts who share similar institutional connections as you, without requiring direct relationships between you and those contacts.
@@ -14,8 +14,8 @@ This allows you to efficiently manage event participation for contacts who share
 ## Key Features
 
 - Advanced contact filtering based on complex relationship patterns:
-  - Include contacts who share the same relationship type(s) with contacts of specified subtype(s) as the current user
-  - Find "peers" who have similar institutional connections to yours
+  - Find contacts who have relationships with the same "Team" contact(s) that the current user has a relationship with
+  - Find "peers" who have connections to the same institutional contacts as you
   - Sophisticated filtering options:
     - Match based on relationship roles (e.g., if the user is an employee of an organization, only show other employees)
     - Require all relationship patterns to match, not just one
