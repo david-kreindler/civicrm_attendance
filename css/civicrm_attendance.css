@@ -60,12 +60,31 @@
 
 .civicrm-attendance-element-relationship-type {
   font-weight: bold;
+  color: #0074bd;
 }
 
 .civicrm-attendance-element-relationship-dates {
   font-size: 0.9em;
   color: #666;
   margin-top: 4px;
+}
+
+/* Add a small visual indicator for the relationship */
+.civicrm-attendance-element-relationship {
+  position: relative;
+  padding-left: 5px;
+}
+
+.civicrm-attendance-element-relationship::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #0074bd;
+  opacity: 0.4;
+  border-radius: 3px;
 }
 
 .civicrm-attendance-element-relationship-start-date,
@@ -75,9 +94,24 @@
 
 .civicrm-attendance-element-status-select {
   width: 100%;
-  padding: 6px;
+  padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  background-color: #f9f9f9;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.civicrm-attendance-element-status-select:focus,
+.civicrm-attendance-element-status-select:hover {
+  border-color: #0074bd;
+  background-color: #fff;
+  outline: none;
+}
+
+/* Style for participant records that have a status */
+.civicrm-attendance-element-status-select[value]:not([value=""]) {
+  background-color: #edf8ff;
+  border-color: #0074bd;
 }
 
 .civicrm-attendance-element-bulk-operations {
@@ -128,13 +162,25 @@
 }
 
 .civicrm-attendance-element-empty {
-  padding: 20px;
+  padding: 25px;
   background-color: #f9f9f9;
   border: 1px solid #ddd;
   border-radius: 4px;
-  text-align: center;
-  color: #666;
-  font-style: italic;
+  text-align: left;
+  color: #555;
+  position: relative;
+  padding-left: 70px;
+  min-height: 50px;
+}
+
+.civicrm-attendance-element-empty::before {
+  content: "ℹ️";
+  font-size: 28px;
+  position: absolute;
+  left: 25px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #0074bd;
 }
 
 /* Responsive adjustments */
