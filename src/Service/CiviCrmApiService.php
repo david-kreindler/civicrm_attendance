@@ -542,6 +542,25 @@ class CiviCrmApiService {
    * @return array
    *   An array of contact data with matching relationship patterns.
    */
+  /**
+   * Get peer contacts who have the same relationships to the same contacts as the current user.
+   *
+   * This method finds contacts who have the same relationship types to the same 
+   * contacts of specified subtypes as the current user.
+   *
+   * @param int $contact_id
+   *   The CiviCRM contact ID.
+   * @param array $options
+   *   An array of filtering options.
+   *   - relationship_type_ids: Relationship type IDs to filter by.
+   *   - contact_subtypes: Contact subtypes to filter by.
+   *   - include_inactive: Whether to include inactive relationships.
+   *   - contact_types: Contact types to include in results.
+   *   - limit: Maximum number of contacts to return.
+   *
+   * @return array
+   *   An array of contacts who share relationship patterns with the current user.
+   */
   public function getPeerContacts($contact_id, array $options = []) {
     // Default options
     $default_options = [
@@ -557,26 +576,23 @@ class CiviCrmApiService {
     try {
       $this->civicrm->initialize();
       
-      // Step 1: Verify the user has at least one of the specified relationship types
-      // with contacts of the specified subtypes
-      $user_relationship_types = $this->getUserRelationshipTypes(
+      // Step 1: Get the user's relationships with contacts of specified subtypes
+      $user_relationships = $this->getUserRelationshipTypes(
         $contact_id, 
         $options['relationship_type_ids'], 
         $options['contact_subtypes'],
         $options['include_inactive']
       );
       
-      // If user doesn't have any of the specified relationship types with contacts
-      // of the specified subtypes, return empty array
-      if (empty($user_relationship_types)) {
+      // If user doesn't have any relationships with contacts of the specified subtypes, return empty array
+      if (empty($user_relationships)) {
         return [];
       }
       
-      // Step 2: Find all contacts who have any of the specified relationship types
-      // with contacts of the specified subtypes
+      // Step 2: Find all contacts who have the same relationships to the same contacts
       $matching_contacts = $this->findContactsWithRelationships(
         $contact_id,
-        $user_relationship_types,
+        $user_relationships,
         $options
       );
       
@@ -591,7 +607,7 @@ class CiviCrmApiService {
   }
   
   /**
-   * Get the user's relationship types with contacts of specified subtypes.
+   * Find contacts of specified subtype that the user has relationships with.
    *
    * @param int $contact_id
    *   The CiviCRM contact ID.
@@ -603,14 +619,15 @@ class CiviCrmApiService {
    *   Whether to include inactive relationships.
    *
    * @return array
-   *   An array of relationship types that the user has with contacts of specified subtypes.
+   *   An array of contacts of the specified subtype that the user has relationships with.
+   *   Each item contains: id, display_name, relationship_type_id
    */
   protected function getUserRelationshipTypes($contact_id, array $relationship_type_ids, array $contact_subtypes, $include_inactive = FALSE) {
-    $valid_relationship_types = [];
+    $subtype_contacts = [];
     
     // If no relationship types or subtypes specified, we can't filter
     if (empty($relationship_type_ids) || empty($contact_subtypes)) {
-      return $valid_relationship_types;
+      return $subtype_contacts;
     }
     
     try {
@@ -642,50 +659,22 @@ class CiviCrmApiService {
       
       $user_relationships_b = civicrm_api3('Relationship', 'get', $params_b);
       
-      // Combine all relationships
-      $all_relationships = array_merge(
-        $user_relationships_a['values'] ?? [],
-        $user_relationships_b['values'] ?? []
-      );
-      
-      // For each relationship, check if the contact at the other end has one of the specified subtypes
-      foreach ($all_relationships as $relationship) {
-        $is_contact_a = isset($relationship['contact_id_a']) && $relationship['contact_id_a'] == $contact_id;
-        $related_contact_id = $is_contact_a ? $relationship['contact_id_b'] : $relationship['contact_id_a'];
-        
-        try {
-          $related_contact = civicrm_api3('Contact', 'getsingle', [
-            'id' => $related_contact_id,
-            'return' => ['id', 'contact_sub_type', 'display_name'],
-          ]);
-          
-          if (!empty($related_contact['contact_sub_type'])) {
-            $contact_subtypes_arr = is_array($related_contact['contact_sub_type']) 
-              ? $related_contact['contact_sub_type'] 
-              : [$related_contact['contact_sub_type']];
-            
-            foreach ($contact_subtypes_arr as $subtype) {
-              if (in_array($subtype, $contact_subtypes)) {
-                // This relationship type is valid since the user has this type of relationship 
-                // with a contact of the specified subtype
-                if (!in_array($relationship['relationship_type_id'], $valid_relationship_types)) {
-                  $valid_relationship_types[] = $relationship['relationship_type_id'];
-                }
-                break;
-              }
-            }
-          }
-        }
-        catch (\Exception $e) {
-          // Skip if we can't get contact details
-          continue;
-        }
+      // Process relationships where user is contact_id_a
+      foreach ($user_relationships_a['values'] as $relationship) {
+        $related_contact_id = $relationship['contact_id_b'];
+        $this->processSubtypeContact($related_contact_id, $relationship['relationship_type_id'], $contact_subtypes, $subtype_contacts);
       }
       
-      return $valid_relationship_types;
+      // Process relationships where user is contact_id_b
+      foreach ($user_relationships_b['values'] as $relationship) {
+        $related_contact_id = $relationship['contact_id_a'];
+        $this->processSubtypeContact($related_contact_id, $relationship['relationship_type_id'], $contact_subtypes, $subtype_contacts);
+      }
+      
+      return $subtype_contacts;
     }
     catch (\Exception $e) {
-      $this->logger->error('Failed to get user relationship types: @error', [
+      $this->logger->error('Failed to get contact subtype relationships: @error', [
         '@error' => $e->getMessage(),
       ]);
       return [];
@@ -693,22 +682,87 @@ class CiviCrmApiService {
   }
   
   /**
-   * Find contacts who have the specified relationship types with contacts of specified subtypes.
+   * Process a contact to check if it has the specified subtype and add it to the result list.
+   *
+   * @param int $contact_id
+   *   The contact ID to check.
+   * @param int $relationship_type_id
+   *   The relationship type ID.
+   * @param array $contact_subtypes
+   *   The contact subtypes to filter by.
+   * @param array &$subtype_contacts
+   *   The array to store results in.
+   */
+  private function processSubtypeContact($contact_id, $relationship_type_id, array $contact_subtypes, array &$subtype_contacts) {
+    try {
+      $related_contact = civicrm_api3('Contact', 'getsingle', [
+        'id' => $contact_id,
+        'return' => ['id', 'contact_sub_type', 'display_name'],
+      ]);
+      
+      if (!empty($related_contact['contact_sub_type'])) {
+        $contact_subtypes_arr = is_array($related_contact['contact_sub_type']) 
+          ? $related_contact['contact_sub_type'] 
+          : [$related_contact['contact_sub_type']];
+        
+        foreach ($contact_subtypes_arr as $subtype) {
+          if (in_array($subtype, $contact_subtypes)) {
+            // Add this contact to our results if not already there
+            $key = $contact_id . '_' . $relationship_type_id;
+            if (!isset($subtype_contacts[$key])) {
+              $subtype_contacts[$key] = [
+                'id' => $contact_id,
+                'display_name' => $related_contact['display_name'],
+                'relationship_type_id' => $relationship_type_id,
+                'contact_subtype' => $subtype
+              ];
+            }
+            break;
+          }
+        }
+      }
+    }
+    catch (\Exception $e) {
+      // Skip if we can't get contact details
+    }
+  }
+  
+  /**
+   * Find contacts who have the specified relationship types with the same
+   * contacts of specified subtype as the user.
    *
    * @param int $contact_id
    *   The CiviCRM contact ID (to exclude from results).
-   * @param array $valid_relationship_types
-   *   The valid relationship types (that the user has with contacts of specified subtypes).
+   * @param array $subtype_contacts
+   *   The contacts of specified subtype that the user has relationships with.
    * @param array $options
    *   The filtering options.
    *
    * @return array
    *   An array of matching contacts.
    */
-  protected function findContactsWithRelationships($contact_id, array $valid_relationship_types, array $options) {
+  protected function findContactsWithRelationships($contact_id, array $subtype_contacts, array $options) {
     $matching_contacts = [];
     
     try {
+      // If user has no relationships with contacts of the specified subtypes, return empty
+      if (empty($subtype_contacts)) {
+        return $matching_contacts;
+      }
+      
+      // Extract the unique IDs of the specific contacts and relationship types
+      $subtype_contact_ids = [];
+      $relationship_type_ids = [];
+      
+      foreach ($subtype_contacts as $contact) {
+        $subtype_contact_ids[] = $contact['id'];
+        $relationship_type_ids[] = $contact['relationship_type_id'];
+      }
+      
+      // Get unique IDs
+      $subtype_contact_ids = array_unique($subtype_contact_ids);
+      $relationship_type_ids = array_unique($relationship_type_ids);
+      
       // Get all contacts in the system that match the specified contact types
       $contact_params = [
         'contact_type' => ['IN' => (array) $options['contact_types']],
@@ -723,87 +777,102 @@ class CiviCrmApiService {
       
       $all_contacts = civicrm_api3('Contact', 'get', $contact_params);
       
-      // For each contact, check if they have relationships to contacts of specified subtypes
+      // For each contact, check if they have relationships to the same subtype contacts as the user
       foreach ($all_contacts['values'] as $potential_contact) {
         // Skip the current user
         if ($potential_contact['id'] == $contact_id) {
           continue;
         }
         
-        // Check for relationships where the contact is either contact_id_a or contact_id_b
-        $relationships_a = civicrm_api3('Relationship', 'get', [
-          'contact_id_a' => $potential_contact['id'],
-          'relationship_type_id' => ['IN' => $valid_relationship_types],
-          'is_active' => $options['include_inactive'] ? ['IN' => [0, 1]] : 1,
-          'options' => ['limit' => 0],
-        ]);
-        
-        $relationships_b = civicrm_api3('Relationship', 'get', [
-          'contact_id_b' => $potential_contact['id'],
-          'relationship_type_id' => ['IN' => $valid_relationship_types],
-          'is_active' => $options['include_inactive'] ? ['IN' => [0, 1]] : 1,
-          'options' => ['limit' => 0],
-        ]);
-        
-        // Combine relationships
-        $contact_relationships = array_merge(
-          $relationships_a['values'] ?? [],
-          $relationships_b['values'] ?? []
-        );
-        
-        // If no relationships found, skip to next contact
-        if (empty($contact_relationships)) {
-          continue;
-        }
-        
-        // Initialize array to track which relationships the contact has with contacts of specified subtypes
+        // Initialize array to track which relationships the contact has with the subtype contacts
         $matched_relationships = [];
         
-        // For each relationship, check if the contact at the other end has one of the specified subtypes
-        foreach ($contact_relationships as $relationship) {
-          $is_contact_a = $relationship['contact_id_a'] == $potential_contact['id'];
-          $related_id = $is_contact_a ? $relationship['contact_id_b'] : $relationship['contact_id_a'];
-          
+        // For each subtype contact the user has a relationship with, check if this contact has a relationship too
+        foreach ($subtype_contacts as $subtype_contact) {
+          // Check for relationships where the contact is contact_id_a and subtype contact is contact_id_b
           try {
-            $related_contact = civicrm_api3('Contact', 'getsingle', [
-              'id' => $related_id,
-              'return' => ['id', 'contact_sub_type', 'display_name'],
-            ]);
+            $params_a = [
+              'contact_id_a' => $potential_contact['id'],
+              'contact_id_b' => $subtype_contact['id'],
+              'relationship_type_id' => ['IN' => $relationship_type_ids],
+              'options' => ['limit' => 1],
+            ];
             
-            if (!empty($related_contact['contact_sub_type'])) {
-              $subtypes_arr = is_array($related_contact['contact_sub_type']) 
-                ? $related_contact['contact_sub_type'] 
-                : [$related_contact['contact_sub_type']];
+            if (!$options['include_inactive']) {
+              $params_a['is_active'] = 1;
+            }
+            
+            $relationship_a = civicrm_api3('Relationship', 'get', $params_a);
+            
+            if (!empty($relationship_a['values'])) {
+              $relationship = reset($relationship_a['values']);
               
-              foreach ($subtypes_arr as $subtype) {
-                if (in_array($subtype, $options['contact_subtypes'])) {
-                  // Get relationship type details for better display
-                  $rel_type = civicrm_api3('RelationshipType', 'getsingle', [
-                    'id' => $relationship['relationship_type_id'],
-                  ]);
-                  
-                  // Add this relationship to the list of matches
-                  $key = $relationship['relationship_type_id'] . '_' . $subtype;
-                  $matched_relationships[$key] = [
-                    'relationship_id' => $relationship['id'],
-                    'relationship_type_id' => $relationship['relationship_type_id'],
-                    'relationship_name' => $is_contact_a ? $rel_type['label_a_b'] : $rel_type['label_b_a'],
-                    'is_contact_a' => $is_contact_a,
-                    'contact_subtype' => $subtype,
-                    'start_date' => $relationship['start_date'] ?? NULL,
-                    'end_date' => $relationship['end_date'] ?? NULL,
-                    'related_contact' => [
-                      'id' => $related_id,
-                      'display_name' => $related_contact['display_name'],
-                    ],
-                  ];
-                  break;
-                }
-              }
+              // Get relationship type details for better display
+              $rel_type = civicrm_api3('RelationshipType', 'getsingle', [
+                'id' => $relationship['relationship_type_id'],
+              ]);
+              
+              // Add this relationship to the list of matches
+              $key = $relationship['relationship_type_id'] . '_' . $subtype_contact['id'];
+              $matched_relationships[$key] = [
+                'relationship_id' => $relationship['id'],
+                'relationship_type_id' => $relationship['relationship_type_id'],
+                'relationship_name' => $rel_type['label_a_b'],
+                'is_contact_a' => TRUE,
+                'contact_subtype' => $subtype_contact['contact_subtype'],
+                'start_date' => $relationship['start_date'] ?? NULL,
+                'end_date' => $relationship['end_date'] ?? NULL,
+                'related_contact' => [
+                  'id' => $subtype_contact['id'],
+                  'display_name' => $subtype_contact['display_name'],
+                ],
+              ];
+              
+              // We found a relationship, no need to check the reverse direction
+              continue;
+            }
+            
+            // Check for relationships where the contact is contact_id_b and subtype contact is contact_id_a
+            $params_b = [
+              'contact_id_b' => $potential_contact['id'],
+              'contact_id_a' => $subtype_contact['id'],
+              'relationship_type_id' => ['IN' => $relationship_type_ids],
+              'options' => ['limit' => 1],
+            ];
+            
+            if (!$options['include_inactive']) {
+              $params_b['is_active'] = 1;
+            }
+            
+            $relationship_b = civicrm_api3('Relationship', 'get', $params_b);
+            
+            if (!empty($relationship_b['values'])) {
+              $relationship = reset($relationship_b['values']);
+              
+              // Get relationship type details for better display
+              $rel_type = civicrm_api3('RelationshipType', 'getsingle', [
+                'id' => $relationship['relationship_type_id'],
+              ]);
+              
+              // Add this relationship to the list of matches
+              $key = $relationship['relationship_type_id'] . '_' . $subtype_contact['id'];
+              $matched_relationships[$key] = [
+                'relationship_id' => $relationship['id'],
+                'relationship_type_id' => $relationship['relationship_type_id'],
+                'relationship_name' => $rel_type['label_b_a'],
+                'is_contact_a' => FALSE,
+                'contact_subtype' => $subtype_contact['contact_subtype'],
+                'start_date' => $relationship['start_date'] ?? NULL,
+                'end_date' => $relationship['end_date'] ?? NULL,
+                'related_contact' => [
+                  'id' => $subtype_contact['id'],
+                  'display_name' => $subtype_contact['display_name'],
+                ],
+              ];
             }
           }
           catch (\Exception $e) {
-            // Skip if we can't get contact details
+            // Skip if we can't get relationship details
             continue;
           }
         }
