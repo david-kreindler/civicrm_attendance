@@ -87,6 +87,10 @@ class CivicrmAttendanceElementTest extends UnitTestCase {
     $this->assertArrayHasKey('include_inactive_relationships', $properties);
     $this->assertArrayHasKey('event_start_date', $properties);
     $this->assertArrayHasKey('event_end_date', $properties);
+    
+    // Check pagination-specific properties.
+    $this->assertArrayHasKey('pagination', $properties);
+    $this->assertArrayHasKey('items_per_page', $properties);
 
     // Verify some default values.
     $this->assertEquals(TRUE, $properties['allow_bulk_operations']);
@@ -95,6 +99,10 @@ class CivicrmAttendanceElementTest extends UnitTestCase {
     $this->assertEquals(FALSE, $properties['include_inactive_relationships']);
     $this->assertEquals('', $properties['event_start_date']);
     $this->assertEquals('', $properties['event_end_date']);
+    
+    // Verify pagination default values.
+    $this->assertEquals(TRUE, $properties['pagination']);
+    $this->assertEquals(25, $properties['items_per_page']);
   }
 
   /**
@@ -181,6 +189,22 @@ class CivicrmAttendanceElementTest extends UnitTestCase {
     $this->assertEquals(TRUE, $result['display']['show_relationship_info']['#default_value']);
     $this->assertEquals('checkbox', $result['display']['show_search']['#type']);
     $this->assertEquals(TRUE, $result['display']['show_search']['#default_value']);
+    
+    // Check pagination settings.
+    $this->assertEquals('checkbox', $result['display']['pagination']['#type']);
+    $this->assertEquals(TRUE, $result['display']['pagination']['#default_value']);
+    $this->assertEquals('number', $result['display']['items_per_page']['#type']);
+    $this->assertEquals(25, $result['display']['items_per_page']['#default_value']);
+    $this->assertEquals(5, $result['display']['items_per_page']['#min']);
+    $this->assertEquals(250, $result['display']['items_per_page']['#max']);
+    
+    // Verify that items_per_page is conditionally visible based on pagination checkbox.
+    $this->assertArrayHasKey('#states', $result['display']['items_per_page']);
+    $this->assertArrayHasKey('visible', $result['display']['items_per_page']['#states']);
+    $this->assertArrayHasKey(':input[name="properties[display][pagination]"]', 
+      $result['display']['items_per_page']['#states']['visible']);
+    $this->assertEquals(['checked' => TRUE], 
+      $result['display']['items_per_page']['#states']['visible'][':input[name="properties[display][pagination]"]']);
 
     // Check relationship filtering settings.
     $this->assertEquals('checkbox', $result['relationship_filtering']['include_inactive_relationships']['#type']);
@@ -297,6 +321,127 @@ class CivicrmAttendanceElementTest extends UnitTestCase {
     $this->assertArrayHasKey(456, $element['#participant_records']);
     $this->assertArrayHasKey(1, $element['#participant_records'][456]);
     $this->assertEquals($participant, $element['#participant_records'][456][1]);
+  }
+  
+  /**
+   * Tests the prepare method with pagination enabled.
+   *
+   * @covers ::prepare
+   */
+  public function testPrepareWithPagination() {
+    // Create a mock for the webform submission.
+    $webform_submission = $this->prophesize(WebformSubmissionInterface::class)->reveal();
+
+    // Mock the CiviCRM API service methods.
+    $current_contact_id = 123;
+    $this->civiCrmApi->getCurrentContactId()->willReturn($current_contact_id);
+
+    // Mock related contacts information with pagination metadata.
+    $contacts = [
+      [
+        'id' => 456,
+        'display_name' => 'Test Contact 1',
+        'relationship_type' => 'Parent of',
+      ],
+      [
+        'id' => 789,
+        'display_name' => 'Test Contact 2',
+        'relationship_type' => 'Employer of',
+      ],
+      'pagination_metadata' => [
+        'current_page' => 2,
+        'items_per_page' => 10,
+        'total_count' => 25,
+        'total_pages' => 3,
+      ],
+    ];
+    $relationship_type_ids = [1, 2];
+    $contact_subtype = 'Student';
+    $options = [
+      'relationship_type_ids' => $relationship_type_ids,
+      'contact_subtypes' => [$contact_subtype],
+      'include_inactive' => FALSE,
+      'use_pagination' => TRUE,
+      'items_per_page' => 10,
+      'page' => 2,
+    ];
+    
+    $this->civiCrmApi->getPeerContacts($current_contact_id, $options)->willReturn($contacts);
+
+    // Mock events retrieval.
+    $events = [
+      1 => [
+        'id' => 1,
+        'title' => 'Test Event 1',
+        'start_date' => '2025-01-01',
+      ],
+      2 => [
+        'id' => 2,
+        'title' => 'Test Event 2',
+        'start_date' => '2025-02-01',
+      ],
+    ];
+    $start_date = '2025-01-01';
+    $end_date = '2025-12-31';
+    $this->civiCrmApi->getEvents(TRUE, $start_date, $end_date)->willReturn($events);
+
+    // Mock participant statuses.
+    $statuses = [
+      1 => 'Registered',
+      2 => 'Attended',
+    ];
+    $this->civiCrmApi->getParticipantStatuses()->willReturn($statuses);
+
+    // Mock participant record retrieval.
+    $participant = [
+      'id' => 101,
+      'contact_id' => 456,
+      'event_id' => 1,
+      'status_id' => 1,
+    ];
+    $this->civiCrmApi->getParticipant(456, 1)->willReturn($participant);
+    $this->civiCrmApi->getParticipant(456, 2)->willReturn([]);
+    $this->civiCrmApi->getParticipant(789, 1)->willReturn([]);
+    $this->civiCrmApi->getParticipant(789, 2)->willReturn([]);
+
+    // Create the element to prepare.
+    $element = [
+      '#relationship_types' => [1 => 1, 2 => 2],
+      '#contact_subtypes' => 'Student',
+      '#events' => [1 => 1, 2 => 2],
+      '#statuses' => [1 => 1, 2 => 2],
+      '#allow_bulk_operations' => TRUE,
+      '#show_relationship_info' => TRUE,
+      '#show_search' => TRUE,
+      '#include_inactive_relationships' => FALSE,
+      '#event_start_date' => $start_date,
+      '#event_end_date' => $end_date,
+      '#pagination' => TRUE,
+      '#items_per_page' => 10,
+      '#webform_key' => 'test_element',
+    ];
+
+    // Set up $_GET['page'] to simulate page request parameter
+    $_GET['page'] = 2;
+
+    // Call the prepare method.
+    $this->element->prepare($element, $webform_submission);
+
+    // Check that pagination metadata is included in the element.
+    $this->assertArrayHasKey('#pagination_metadata', $element);
+    $this->assertEquals(2, $element['#pagination_metadata']['current_page']);
+    $this->assertEquals(10, $element['#pagination_metadata']['items_per_page']);
+    $this->assertEquals(25, $element['#pagination_metadata']['total_count']);
+    $this->assertEquals(3, $element['#pagination_metadata']['total_pages']);
+
+    // Verify that the contacts array is properly processed.
+    $this->assertIsArray($element['#contacts']);
+    $this->assertCount(2, $element['#contacts']);  // Should only have 2 contacts, metadata removed
+    $this->assertEquals(456, $element['#contacts'][0]['id']);
+    $this->assertEquals(789, $element['#contacts'][1]['id']);
+
+    // Clean up global state
+    unset($_GET['page']);
   }
 
   /**
