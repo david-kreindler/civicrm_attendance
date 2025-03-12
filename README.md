@@ -24,6 +24,10 @@ This allows you to efficiently manage event participation for contacts who share
 - Allow recording or updating event participation status for these contacts
 - Search/filter functionality to quickly find specific contacts
 - Batch operations to set multiple participation statuses at once
+- Efficient pagination for handling large sets of contacts:
+  - Configurable number of contacts per page
+  - Intuitive navigation controls (First, Previous, Pages, Next, Last)
+  - Maintains form state when navigating between pages
 - Full integration with Drupal Webforms and CiviCRM
 
 ## Use Cases
@@ -72,7 +76,10 @@ This module is particularly useful in scenarios such as:
 5. Configure basic settings:
    - Select which relationship types, contact subtypes and events to use
    - Configure display options (bulk operations, relationship info, search)
-6. Configure advanced relationship filtering (optional):
+6. Configure pagination settings (for large contact sets):
+   - Enable or disable pagination (enabled by default)
+   - Set the number of contacts to display per page (5-250, default is 25)
+7. Configure advanced relationship filtering (optional):
    - Require all relationship patterns to match
    - Match relationship roles
    - Include inactive relationships
@@ -85,6 +92,10 @@ After adding the element to a webform, authenticated users with CiviCRM contacts
 2. Relationship information for each contact
 3. A table of events with status selection options
 4. Options to quickly set or clear statuses for all events
+5. Pagination controls when there are more contacts than the configured number per page:
+   - Current page indicator showing "Showing X-Y of Z contacts"
+   - Navigation links (First, Previous, Page Numbers, Next, Last)
+   - The ability to navigate between pages while maintaining form state
 
 When the form is submitted, the module will create or update participant records in CiviCRM based on the selected statuses.
 
@@ -110,8 +121,22 @@ $filtering_options = [
   'include_inactive' => FALSE,
   'contact_types' => ['Individual'],
   'limit' => 0, // 0 means no limit
+  // Pagination options:
+  'use_pagination' => TRUE, // Enable pagination
+  'items_per_page' => 25,   // 25 items per page
+  'page' => 1,              // First page
+  'count_total' => TRUE,    // Include total count in result
 ];
 $participant_contacts = $civicrm_api_service->getPeerContacts($contact_id, $filtering_options);
+
+// Check for pagination metadata in result
+if (isset($participant_contacts['pagination_metadata'])) {
+  $pagination_data = $participant_contacts['pagination_metadata'];
+  $current_page = $pagination_data['current_page'];
+  $total_pages = $pagination_data['total_pages'];
+  $total_count = $pagination_data['total_count'];
+  // Contacts are available in the rest of the array
+}
 
 // Get events within a specific date range.
 $events = $civicrm_api_service->getEvents(
