@@ -5,10 +5,11 @@
 The CiviCRM Attendance module provides a powerful integration between Drupal Webforms and CiviCRM for tracking event participation of contacts based on their relationship patterns with specific contact subtypes.
 
 The module specifically targets contacts who:
-1. Share the same relationship type(s) with contacts of the specified subtype(s) as the current user
-2. Are NOT filtered based on having a direct relationship with the current user
+1. Have one or more specified relationship types to contacts of a specified subtype
+2. Where the current user also has at least one of those same relationship types to contacts of the specified subtype
+3. Can be filtered further by event date ranges and participation status
 
-This allows you to find contacts who have similar relationship patterns to yours, enabling organization of contacts by their institutional connections rather than personal connections.
+This allows you to efficiently manage event participation for contacts who share similar institutional connections as you, without requiring direct relationships between you and those contacts.
 
 ## Key Features
 
@@ -102,17 +103,22 @@ $related_contacts = $civicrm_api_service->getRelatedContacts(
   $contact_subtypes
 );
 
-// Get peer contacts with advanced filtering (recommended).
+// Get participant contacts with relationship filtering.
 $filtering_options = [
   'relationship_type_ids' => $relationship_type_ids,
-  'institution_subtypes' => $contact_subtypes,
-  'require_all_patterns' => FALSE,
-  'match_roles' => TRUE,
+  'contact_subtypes' => $contact_subtypes,
   'include_inactive' => FALSE,
   'contact_types' => ['Individual'],
   'limit' => 0, // 0 means no limit
 ];
-$peer_contacts = $civicrm_api_service->getPeerContacts($contact_id, $filtering_options);
+$participant_contacts = $civicrm_api_service->getPeerContacts($contact_id, $filtering_options);
+
+// Get events within a specific date range.
+$events = $civicrm_api_service->getEvents(
+  TRUE, // Active events only
+  '2025-01-01', // Start date
+  '2025-12-31' // End date
+);
 
 // Create or update a participant record.
 $participant = $civicrm_api_service->createParticipant(
