@@ -13,14 +13,30 @@
    */
   Drupal.behaviors.civicrmAttendanceElement = {
     attach: function (context, settings) {
+      // Initialize status selects to apply the proper styling based on current value
+      $('.civicrm-attendance-element-status-select', context).once('civicrm-attendance-element-status-init').each(function() {
+        // Apply the 'value' attribute explicitly to make CSS selector work
+        if ($(this).val()) {
+          $(this).attr('value', $(this).val());
+        }
+      });
+      
+      // Update the value attribute when status changes
+      $('.civicrm-attendance-element-status-select', context).once('civicrm-attendance-element-status-change').on('change', function() {
+        $(this).attr('value', $(this).val());
+      });
+      
       // Handle search functionality.
       $('.civicrm-attendance-element-search-input', context).once('civicrm-attendance-element-search').on('keyup', function () {
         var searchText = $(this).val().toLowerCase();
         $('.civicrm-attendance-element-contact-row').each(function () {
           var contactName = $(this).find('.civicrm-attendance-element-contact-name').text().toLowerCase();
           var contactEmail = $(this).find('.civicrm-attendance-element-contact-email').text().toLowerCase();
+          var relationshipInfo = $(this).find('.civicrm-attendance-element-relationship').text().toLowerCase();
           
-          if (contactName.indexOf(searchText) > -1 || contactEmail.indexOf(searchText) > -1) {
+          if (contactName.indexOf(searchText) > -1 || 
+              contactEmail.indexOf(searchText) > -1 || 
+              relationshipInfo.indexOf(searchText) > -1) {
             $(this).show();
           }
           else {
@@ -62,9 +78,19 @@
         if (eventId && statusId) {
           $('.civicrm-attendance-element-status-select').each(function () {
             if ($(this).data('event-id') == eventId) {
-              $(this).val(statusId).trigger('change');
+              $(this).val(statusId)
+                .attr('value', statusId)
+                .trigger('change');
             }
           });
+          
+          // Show a visual feedback that the operation was completed
+          var $button = $(this);
+          var originalText = $button.text();
+          $button.text(Drupal.t('Applied!'));
+          setTimeout(function() {
+            $button.text(originalText);
+          }, 1500);
         }
       });
     }
