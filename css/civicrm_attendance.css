@@ -183,6 +183,63 @@
   color: #0074bd;
 }
 
+/* Pagination Styles */
+.civicrm-attendance-element-pagination-info {
+  margin: 10px 0;
+  font-size: 0.9em;
+  color: #666;
+  text-align: right;
+}
+
+.civicrm-attendance-element-pagination {
+  margin: 20px 0;
+}
+
+.pager {
+  text-align: center;
+}
+
+.pager__items {
+  display: inline-flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pager__item {
+  margin: 0 2px;
+}
+
+.pager__item a,
+.pager__item span {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  color: #0074bd;
+  text-decoration: none;
+  transition: background-color 0.2s, border-color 0.2s;
+  background-color: #fff;
+}
+
+.pager__item a:hover,
+.pager__item a:focus {
+  background-color: #f5f5f5;
+  border-color: #0074bd;
+}
+
+.pager__item.is-active span {
+  background-color: #0074bd;
+  color: white;
+  border-color: #0074bd;
+}
+
+.pager__item.disabled span {
+  color: #999;
+  cursor: not-allowed;
+  background-color: #f5f5f5;
+}
+
 /* Responsive adjustments */
 @media screen and (max-width: 768px) {
   .civicrm-attendance-element-bulk-operations {
