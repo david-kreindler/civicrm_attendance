@@ -27,7 +27,7 @@ class CivicrmAttendanceElement extends WebformElementBase {
       'title' => '',
       'description' => '',
       'relationship_types' => [],
-      'contact_subtypes' => [],
+      'contact_subtypes' => '',  // Now a string (select) instead of array (checkboxes)
       'events' => [],
       'statuses' => [],
       'allow_bulk_operations' => TRUE,
@@ -57,18 +57,19 @@ class CivicrmAttendanceElement extends WebformElementBase {
     $form['civicrm']['relationship_types'] = [
       '#type' => 'checkboxes',
       '#title' => $this->t('Relationship types'),
-      '#description' => $this->t('Select which relationship types to include.'),
+      '#description' => $this->t('Select which relationship types to include. The module will first find a contact (e.g., "Team") of the selected subtype that has one of these relationships with the current user, then find all other contacts who have any of these relationships with that same "Team" contact.'),
       '#options' => $relationship_types,
       '#required' => TRUE,
     ];
 
     $contact_subtypes = $civicrm_api->getContactSubtypes();
     $form['civicrm']['contact_subtypes'] = [
-      '#type' => 'checkboxes',
-      '#title' => $this->t('Contact subtypes'),
-      '#description' => $this->t('Select which contact subtypes to include. Only contacts with these subtypes will be shown.'),
+      '#type' => 'select',
+      '#title' => $this->t('Contact subtype'),
+      '#description' => $this->t('Select a contact subtype. The module will first find a contact of this subtype (e.g., "Team") that has a relationship with the current user, then find all contacts that have relationships with that same "Team" contact.'),
       '#options' => $contact_subtypes,
-      '#required' => FALSE,
+      '#required' => TRUE,
+      '#empty_option' => $this->t('- Select -'),
     ];
 
     $events = $civicrm_api->getEvents();
@@ -80,7 +81,7 @@ class CivicrmAttendanceElement extends WebformElementBase {
     $form['civicrm']['events'] = [
       '#type' => 'checkboxes',
       '#title' => $this->t('Events'),
-      '#description' => $this->t('Select which events to include.'),
+      '#description' => $this->t('Select which events to include in the attendance tracking form. Users will be able to set attendance status for these events.'),
       '#options' => $event_options,
       '#required' => TRUE,
     ];
@@ -89,7 +90,7 @@ class CivicrmAttendanceElement extends WebformElementBase {
     $form['civicrm']['statuses'] = [
       '#type' => 'checkboxes',
       '#title' => $this->t('Participant statuses'),
-      '#description' => $this->t('Select which participant statuses to include.'),
+      '#description' => $this->t('Select which participant statuses users can assign to contacts. These will appear in the dropdown for each participant record.'),
       '#options' => $statuses,
       '#required' => TRUE,
     ];
@@ -137,7 +138,7 @@ class CivicrmAttendanceElement extends WebformElementBase {
     $form['event_filtering'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Event Filtering Settings'),
-      '#description' => $this->t('Settings for filtering events by date range.'),
+      '#description' => $this->t('Settings for filtering events by date range. This applies to all events selected above, and can be used to limit displayed events to a specific time period.'),
     ];
     
     $form['event_filtering']['event_start_date'] = [
@@ -180,9 +181,9 @@ class CivicrmAttendanceElement extends WebformElementBase {
     $relationship_types = array_filter($element['#relationship_types']);
     $relationship_type_ids = array_keys($relationship_types);
 
-    // Get contact subtypes.
-    $contact_subtypes = array_filter($element['#contact_subtypes']);
-    $contact_subtype_keys = array_keys($contact_subtypes);
+    // Get contact subtype (now a single value from select, not array from checkboxes).
+    $contact_subtype = !empty($element['#contact_subtypes']) ? $element['#contact_subtypes'] : '';
+    $contact_subtype_keys = !empty($contact_subtype) ? [$contact_subtype] : [];
 
     // Get related contacts with relationship filtering.
     $filtering_options = [
