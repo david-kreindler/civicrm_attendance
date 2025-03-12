@@ -12,7 +12,7 @@
    * @type {Drupal~behavior}
    */
   Drupal.behaviors.civicrmAttendanceElement = {
-    attach: function (context, settings) {
+    attach: function (context) {
       // Initialize status selects to apply the proper styling based on current value
       $('.civicrm-attendance-element-status-select', context).once('civicrm-attendance-element-status-init').each(function() {
         // Apply the 'value' attribute explicitly to make CSS selector work
@@ -79,7 +79,7 @@
         
         if (eventId && statusId) {
           $('.civicrm-attendance-element-status-select', context).each(function () {
-            if ($(this).data('event-id') == eventId) {
+            if ($(this).data('event-id') === eventId) {
               $(this).val(statusId)
                 .attr('value', statusId)
                 .trigger('change');
@@ -94,6 +94,36 @@
             $button.text(originalText);
           }, 1500);
         }
+      });
+      
+      // Handle pagination links.
+      $('.civicrm-attendance-element-pagination a', context).once('civicrm-attendance-element-pagination').on('click', function (e) {
+        e.preventDefault();
+        
+        // Get the page number from the URL
+        var url = new URL($(this).attr('href'), window.location.origin);
+        var page = url.searchParams.get('page') || 1;
+        
+        // Find the closest form element
+        var $form = $(this).closest('form');
+        if ($form.length === 0) {
+          return;
+        }
+        
+        // Add a hidden input for the page number if it doesn't exist, otherwise update it
+        var $pageInput = $form.find('input[name="page"]');
+        if ($pageInput.length === 0) {
+          $pageInput = $('<input>').attr({
+            type: 'hidden',
+            name: 'page',
+            value: page
+          }).appendTo($form);
+        } else {
+          $pageInput.val(page);
+        }
+        
+        // Submit the form
+        $form.submit();
       });
     }
   };
