@@ -33,9 +33,9 @@ class CivicrmAttendanceElement extends WebformElementBase {
       'allow_bulk_operations' => TRUE,
       'show_relationship_info' => TRUE,
       'show_search' => TRUE,
-      'require_all_patterns' => FALSE,
-      'match_roles' => TRUE,
       'include_inactive_relationships' => FALSE,
+      'event_start_date' => '',
+      'event_end_date' => '',
     ] + parent::getDefaultProperties();
   }
 
@@ -123,21 +123,7 @@ class CivicrmAttendanceElement extends WebformElementBase {
     $form['relationship_filtering'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Relationship Filtering Settings'),
-      '#description' => $this->t('Advanced settings for filtering contacts based on institutional relationships.'),
-    ];
-    
-    $form['relationship_filtering']['require_all_patterns'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Require all relationship patterns'),
-      '#description' => $this->t('If checked, contacts must match all the same relationship patterns as the current user, not just one.'),
-      '#default_value' => FALSE,
-    ];
-    
-    $form['relationship_filtering']['match_roles'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Match relationship roles'),
-      '#description' => $this->t('If checked, contacts must have the same role in relationships as the current user (e.g., if the user is an employee of an organization, only show other employees, not employers).'),
-      '#default_value' => TRUE,
+      '#description' => $this->t('Advanced settings for filtering contacts based on relationships.'),
     ];
     
     $form['relationship_filtering']['include_inactive_relationships'] = [
@@ -145,6 +131,27 @@ class CivicrmAttendanceElement extends WebformElementBase {
       '#title' => $this->t('Include inactive relationships'),
       '#description' => $this->t('If checked, inactive relationships will also be considered when matching contacts.'),
       '#default_value' => FALSE,
+    ];
+    
+    // Add date range options for events
+    $form['event_filtering'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Event Filtering Settings'),
+      '#description' => $this->t('Settings for filtering events by date range.'),
+    ];
+    
+    $form['event_filtering']['event_start_date'] = [
+      '#type' => 'date',
+      '#title' => $this->t('Event start date'),
+      '#description' => $this->t('Only include events on or after this date. Leave blank for no start date restriction.'),
+      '#default_value' => '',
+    ];
+    
+    $form['event_filtering']['event_end_date'] = [
+      '#type' => 'date',
+      '#title' => $this->t('Event end date'),
+      '#description' => $this->t('Only include events on or before this date. Leave blank for no end date restriction.'),
+      '#default_value' => '',
     ];
 
     return $form;
@@ -177,22 +184,25 @@ class CivicrmAttendanceElement extends WebformElementBase {
     $contact_subtypes = array_filter($element['#contact_subtypes']);
     $contact_subtype_keys = array_keys($contact_subtypes);
 
-    // Get related contacts with sophisticated relationship filtering.
+    // Get related contacts with relationship filtering.
     $filtering_options = [
       'relationship_type_ids' => $relationship_type_ids,
-      'institution_subtypes' => $contact_subtype_keys,
-      'require_all_patterns' => !empty($element['#require_all_patterns']),
-      'match_roles' => !empty($element['#match_roles']),
+      'contact_subtypes' => $contact_subtype_keys,
       'include_inactive' => !empty($element['#include_inactive_relationships']),
     ];
     
     $element['#contacts'] = $civicrm_api->getPeerContacts($contact_id, $filtering_options);
 
-    // Get events.
+    // Get events, applying date range filtering if specified.
     $event_ids = array_keys(array_filter($element['#events']));
     $element['#event_list'] = [];
     if (!empty($event_ids)) {
-      $events = $civicrm_api->getEvents();
+      // Apply date range filtering if configured
+      $start_date = !empty($element['#event_start_date']) ? $element['#event_start_date'] : NULL;
+      $end_date = !empty($element['#event_end_date']) ? $element['#event_end_date'] : NULL;
+      
+      $events = $civicrm_api->getEvents(TRUE, $start_date, $end_date);
+      
       foreach ($event_ids as $event_id) {
         if (isset($events[$event_id])) {
           $element['#event_list'][$event_id] = $events[$event_id];
@@ -462,9 +472,9 @@ class CivicrmAttendanceElement extends WebformElementBase {
       '#allow_bulk_operations' => TRUE,
       '#show_relationship_info' => TRUE,
       '#show_search' => TRUE,
-      '#require_all_patterns' => FALSE,
-      '#match_roles' => TRUE,
       '#include_inactive_relationships' => FALSE,
+      '#event_start_date' => '',
+      '#event_end_date' => '',
     ];
   }
 
