@@ -1,1 +1,159 @@
+/**
+ * @file
+ * Styles for the CiviCRM Attendance module.
+ */
 
+/* CiviCRM Attendance Element styles */
+.civicrm-attendance-element {
+  margin-bottom: 20px;
+}
+
+.civicrm-attendance-element-search {
+  margin-bottom: 15px;
+}
+
+.civicrm-attendance-element-search-input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.civicrm-attendance-element-container {
+  overflow-x: auto;
+  margin-bottom: 15px;
+}
+
+.civicrm-attendance-element-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.civicrm-attendance-element-table th {
+  background-color: #f5f5f5;
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
+  font-weight: bold;
+}
+
+.civicrm-attendance-element-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  vertical-align: top;
+}
+
+.civicrm-attendance-element-contact-row:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.civicrm-attendance-element-contact-name {
+  font-weight: bold;
+}
+
+.civicrm-attendance-element-contact-email {
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 4px;
+}
+
+.civicrm-attendance-element-relationship-type {
+  font-weight: bold;
+}
+
+.civicrm-attendance-element-relationship-dates {
+  font-size: 0.9em;
+  color: #666;
+  margin-top: 4px;
+}
+
+.civicrm-attendance-element-relationship-start-date,
+.civicrm-attendance-element-relationship-end-date {
+  display: block;
+}
+
+.civicrm-attendance-element-status-select {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.civicrm-attendance-element-bulk-operations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 15px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.civicrm-attendance-element-bulk-operation {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.civicrm-attendance-element-bulk-operation label {
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.civicrm-attendance-element-bulk-event-select,
+.civicrm-attendance-element-bulk-status-select {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  min-width: 150px;
+}
+
+.civicrm-attendance-element-bulk-apply-button {
+  padding: 6px 12px;
+  background-color: #0074bd;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.civicrm-attendance-element-bulk-apply-button:hover:not(:disabled) {
+  background-color: #005c94;
+}
+
+.civicrm-attendance-element-bulk-apply-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.civicrm-attendance-element-empty {
+  padding: 20px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .civicrm-attendance-element-bulk-operations {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .civicrm-attendance-element-bulk-operation {
+    width: 100%;
+  }
+  
+  .civicrm-attendance-element-bulk-event-select,
+  .civicrm-attendance-element-bulk-status-select {
+    flex-grow: 1;
+  }
+  
+  .civicrm-attendance-element-table {
+    font-size: 0.9em;
+  }
+}
