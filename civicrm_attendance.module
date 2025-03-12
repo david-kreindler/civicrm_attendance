@@ -58,6 +58,9 @@ function template_preprocess_civicrm_attendance_element(array &$variables) {
   $variables['allow_bulk_operations'] = $element['#allow_bulk_operations'] ?? TRUE;
   $variables['show_relationship_info'] = $element['#show_relationship_info'] ?? TRUE;
   $variables['show_search'] = $element['#show_search'] ?? TRUE;
+  $variables['pagination'] = $element['#pagination'] ?? TRUE;
+  $variables['items_per_page'] = $element['#items_per_page'] ?? 25;
+  $variables['pagination_metadata'] = $element['#pagination_metadata'] ?? NULL;
   
   // Add attributes.
   $variables['attributes'] = $element['#attributes'] ?? [];
