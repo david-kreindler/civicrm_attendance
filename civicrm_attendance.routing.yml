@@ -1,0 +1,15 @@
+civicrm_attendance.settings:
+  path: '/admin/config/civicrm/civicrm-attendance'
+  defaults:
+    _form: '\Drupal\civicrm_attendance\Form\SettingsForm'
+    _title: 'CiviCRM Attendance Settings'
+  requirements:
+    _permission: 'administer civicrm attendance'
+
+civicrm_attendance.reports:
+  path: '/admin/config/civicrm/civicrm-attendance/reports'
+  defaults:
+    _controller: '\Drupal\civicrm_attendance\Controller\ReportsController::overview'
+    _title: 'CiviCRM Attendance Reports'
+  requirements:
+    _permission: 'administer civicrm attendance'

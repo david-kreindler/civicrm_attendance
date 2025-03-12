@@ -1,0 +1,159 @@
+<?php
+
+/**
+ * @file
+ * Contains civicrm_attendance.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function civicrm_attendance_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.civicrm_attendance':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The CiviCRM Attendance module provides a Webform element for managing event participation for contacts with specific relationships.') . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Configuring the module') . '</dt>';
+      $output .= '<dd>' . t('You can configure the module settings at <a href=":settings">CiviCRM Attendance settings</a>.', [':settings' => '/admin/config/civicrm/civicrm-attendance']) . '</dd>';
+      $output .= '<dt>' . t('Adding to a webform') . '</dt>';
+      $output .= '<dd>' . t('When creating or editing a Webform, add a "CiviCRM Attendance Element" element from the "CiviCRM" section of the element list.') . '</dd>';
+      $output .= '</dl>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function civicrm_attendance_theme() {
+  return [
+    'civicrm_attendance_element' => [
+      'render element' => 'element',
+    ],
+  ];
+}
+
+/**
+ * Prepares variables for civicrm_attendance_element templates.
+ *
+ * Default template: civicrm-attendance-element.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the element properties.
+ */
+function template_preprocess_civicrm_attendance_element(array &$variables) {
+  $element = $variables['element'];
+  
+  // Pass element properties to the template.
+  $variables['contacts'] = $element['#contacts'] ?? [];
+  $variables['event_list'] = $element['#event_list'] ?? [];
+  $variables['status_list'] = $element['#status_list'] ?? [];
+  $variables['participant_records'] = $element['#participant_records'] ?? [];
+  $variables['allow_bulk_operations'] = $element['#allow_bulk_operations'] ?? TRUE;
+  $variables['show_relationship_info'] = $element['#show_relationship_info'] ?? TRUE;
+  $variables['show_search'] = $element['#show_search'] ?? TRUE;
+  
+  // Add attributes.
+  $variables['attributes'] = $element['#attributes'] ?? [];
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function civicrm_attendance_page_attachments(array &$attachments) {
+  // Add libraries to all pages where they might be needed.
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  
+  if (strpos($route_name, 'entity.webform.') === 0) {
+    $attachments['#attached']['library'][] = 'civicrm_attendance/civicrm_attendance';
+  }
+}
+
+/**
+ * Implements hook_library_info_build().
+ */
+function civicrm_attendance_library_info_build() {
+  $libraries = [];
+  
+  // Add core libraries.
+  $libraries['civicrm_attendance'] = [
+    'version' => '1.x',
+    'css' => [
+      'theme' => [
+        'css/civicrm_attendance.css' => [],
+      ],
+    ],
+    'js' => [
+      'js/civicrm_attendance.js' => [],
+    ],
+    'dependencies' => [
+      'core/jquery',
+      'core/drupal',
+      'core/jquery.once',
+    ],
+  ];
+  
+  return $libraries;
+}
+
+/**
+ * Implements hook_civicrm_config().
+ */
+function civicrm_attendance_civicrm_config(&$config) {
+  // Add any CiviCRM-specific configuration here.
+}
+
+/**
+ * Implements hook_civicrm_xmlMenu().
+ */
+function civicrm_attendance_civicrm_xmlMenu(&$files) {
+  // Add any CiviCRM XML menu files here.
+}
+
+/**
+ * Implements hook_civicrm_install().
+ */
+function civicrm_attendance_civicrm_install() {
+  // Perform actions when the module is installed.
+}
+
+/**
+ * Implements hook_civicrm_postInstall().
+ */
+function civicrm_attendance_civicrm_postInstall() {
+  // Perform actions after the module is installed.
+}
+
+/**
+ * Implements hook_civicrm_uninstall().
+ */
+function civicrm_attendance_civicrm_uninstall() {
+  // Perform actions when the module is uninstalled.
+}
+
+/**
+ * Implements hook_civicrm_enable().
+ */
+function civicrm_attendance_civicrm_enable() {
+  // Perform actions when the module is enabled.
+}
+
+/**
+ * Implements hook_civicrm_disable().
+ */
+function civicrm_attendance_civicrm_disable() {
+  // Perform actions when the module is disabled.
+}
+
+/**
+ * Implements hook_civicrm_upgrade().
+ */
+function civicrm_attendance_civicrm_upgrade($op, CRM_Queue_Queue $queue = NULL) {
+  // Perform actions during module upgrades.
+}

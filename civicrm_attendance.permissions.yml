@@ -1,0 +1,8 @@
+administer civicrm attendance:
+  title: 'Administer CiviCRM Attendance'
+  description: 'Configure settings and permissions for the CiviCRM Attendance module.'
+  restrict access: TRUE
+
+use civicrm attendance:
+  title: 'Use CiviCRM Attendance'
+  description: 'Access and use the CiviCRM Attendance webform elements.'

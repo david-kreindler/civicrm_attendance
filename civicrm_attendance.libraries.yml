@@ -1,0 +1,11 @@
+civicrm_attendance:
+  version: 1.x
+  css:
+    theme:
+      css/civicrm_attendance.css: {}
+  js:
+    js/civicrm_attendance.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/jquery.once

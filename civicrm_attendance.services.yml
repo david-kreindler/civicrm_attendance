@@ -1,0 +1,8 @@
+services:
+  civicrm_attendance.civicrm_api:
+    class: Drupal\civicrm_attendance\Service\CiviCrmApiService
+    arguments: ['@current_user', '@civicrm', '@config.factory', '@logger.channel.civicrm_attendance']
+  
+  logger.channel.civicrm_attendance:
+    parent: logger.channel_base
+    arguments: ['civicrm_attendance']

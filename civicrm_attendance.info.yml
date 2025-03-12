@@ -1,0 +1,14 @@
+name: 'CiviCRM Attendance'
+type: module
+description: 'Provides a Webform element for managing event participation for contacts with specific relationships.'
+package: 'CiviCRM'
+core_version_requirement: ^9 || ^10
+dependencies:
+  - drupal:civicrm
+  - drupal:webform
+  - webform_civicrm:webform_civicrm
+configure: civicrm_attendance.settings
+version: '1.0.0'
+project: 'civicrm_attendance'
+php: 7.4
+license: 'GPL-2.0-or-later'

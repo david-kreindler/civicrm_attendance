@@ -1,0 +1,31 @@
+{
+    "name": "drupal/civicrm_attendance",
+    "description": "Drupal module for tracking event participation of contacts based on their relationship patterns with specific contact subtypes in CiviCRM",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Your Name",
+            "email": "your.email@example.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "drupal/core": "^9.0 || ^10.0",
+        "drupal/webform": "^6.0",
+        "drupal/civicrm": "*",
+        "drupal/webform_civicrm": "*"
+    },
+    "support": {
+        "issues": "https://github.com/yourusername/civicrm_attendance/issues",
+        "source": "https://github.com/yourusername/civicrm_attendance"
+    },
+    "scripts": {
+        "phpcs": "phpcs --standard=Drupal --extensions=php,module,inc,install,test,profile,theme,css,info,txt,md --ignore=vendor/ .",
+        "phpcbf": "phpcbf --standard=Drupal --extensions=php,module,inc,install,test,profile,theme,css,info,txt,md --ignore=vendor/ ."
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

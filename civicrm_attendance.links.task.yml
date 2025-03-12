@@ -1,0 +1,18 @@
+civicrm_attendance.settings:
+  title: 'Settings'
+  route_name: civicrm_attendance.settings
+  base_route: civicrm_attendance.settings
+  weight: 0
+
+civicrm_attendance.reports:
+  title: 'Reports'
+  route_name: civicrm_attendance.reports
+  base_route: civicrm_attendance.settings
+  weight: 10
+
+# Add a tab to the Webform CiviCRM settings page to access our module's settings
+webform_civicrm.settings.civicrm_attendance:
+  title: 'Attendance Tracking'
+  route_name: civicrm_attendance.settings
+  base_route: webform_civicrm.settings
+  weight: 50

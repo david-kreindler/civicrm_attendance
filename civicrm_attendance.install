@@ -1,0 +1,145 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the CiviCRM Attendance module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function civicrm_attendance_install() {
+  \Drupal::messenger()->addStatus(t('CiviCRM Attendance module has been installed. Please configure the module settings.'));
+  
+  // Set default configuration if needed.
+  $config = \Drupal::configFactory()->getEditable('civicrm_attendance.settings');
+  if ($config->isNew()) {
+    $config
+      ->set('relationship_types', [])
+      ->set('contact_subtypes', [])
+      ->set('default_participant_status', 1)
+      ->save();
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function civicrm_attendance_uninstall() {
+  // Delete configuration.
+  \Drupal::configFactory()->getEditable('civicrm_attendance.settings')->delete();
+  
+  // Delete any stored state variables.
+  \Drupal::state()->delete('civicrm_attendance.last_sync');
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function civicrm_attendance_requirements($phase) {
+  $requirements = [];
+  
+  // Check requirements when the module is being installed or at runtime.
+  if ($phase == 'install' || $phase == 'runtime') {
+    // Check if CiviCRM is installed and available.
+    if (!\Drupal::moduleHandler()->moduleExists('civicrm')) {
+      $requirements['civicrm_attendance_civicrm'] = [
+        'title' => t('CiviCRM'),
+        'description' => t('CiviCRM Attendance requires the CiviCRM module to be installed and enabled.'),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+    
+    // Check if Webform is installed and available.
+    if (!\Drupal::moduleHandler()->moduleExists('webform')) {
+      $requirements['civicrm_attendance_webform'] = [
+        'title' => t('Webform'),
+        'description' => t('CiviCRM Attendance requires the Webform module to be installed and enabled.'),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+    
+    // Check if Webform CiviCRM is installed and available.
+    if (!\Drupal::moduleHandler()->moduleExists('webform_civicrm')) {
+      $requirements['civicrm_attendance_webform_civicrm'] = [
+        'title' => t('Webform CiviCRM'),
+        'description' => t('CiviCRM Attendance requires the Webform CiviCRM Integration module to be installed and enabled.'),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+  }
+  
+  return $requirements;
+}
+
+/**
+ * Implements hook_schema().
+ *
+ * Defines the database tables used by this module.
+ * This module does not currently define any tables, but this function
+ * is provided as a placeholder for future development if needed.
+ */
+function civicrm_attendance_schema() {
+  $schema = [];
+  
+  // If the module needs custom tables in the future, they would be defined here.
+  // Example:
+  /*
+  $schema['civicrm_attendance_log'] = [
+    'description' => 'Stores attendance logging information.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique record ID.',
+      ],
+      'contact_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The CiviCRM contact ID.',
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The CiviCRM event ID.',
+      ],
+      'status_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The participant status ID.',
+      ],
+      'changed_by' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The user ID who changed the status.',
+      ],
+      'changed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'The Unix timestamp when the status was changed.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'contact_event' => ['contact_id', 'event_id'],
+    ],
+  ];
+  */
+  
+  return $schema;
+}
+
+/**
+ * Update the default configuration with contact subtypes support.
+ */
+function civicrm_attendance_update_8001() {
+  $config = \Drupal::configFactory()->getEditable('civicrm_attendance.settings');
+  if (!$config->get('contact_subtypes')) {
+    $config->set('contact_subtypes', [])->save();
+  }
+}
