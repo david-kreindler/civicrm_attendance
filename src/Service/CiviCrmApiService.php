@@ -646,6 +646,10 @@ class CiviCrmApiService {
       'include_inactive' => FALSE,
       'contact_types' => ['Individual'],
       'limit' => 0,
+      'page' => 1,
+      'items_per_page' => 25,
+      'use_pagination' => TRUE,
+      'count_total' => TRUE,
     ];
     
     $options = array_merge($default_options, $options);
@@ -673,6 +677,23 @@ class CiviCrmApiService {
         $options
       );
       
+      // If pagination is enabled and metadata exists, keep it in the result
+      if ($options["use_pagination"] && isset($matching_contacts["pagination_metadata"])) {
+        $pagination_metadata = $matching_contacts["pagination_metadata"];
+        unset($matching_contacts["pagination_metadata"]);
+        
+        // Rebuild contacts array with numeric indexes
+        $contacts = [];
+        foreach ($matching_contacts as $contact) {
+          $contacts[] = $contact;
+        }
+        
+        // Add pagination metadata back
+        $contacts["pagination_metadata"] = $pagination_metadata;
+        return $contacts;
+      }
+      
+      // Otherwise, just return contacts with numeric indexes
       return array_values($matching_contacts);
     }
     catch (\Exception $e) {
@@ -879,19 +900,51 @@ class CiviCrmApiService {
       $subtype_contact_ids = array_unique($subtype_contact_ids);
       $relationship_type_ids = array_unique($relationship_type_ids);
       
-      // Get all contacts in the system that match the specified contact types
+      // Set up pagination parameters
+      $api_options = ['sort' => 'sort_name'];
+      
+      // If pagination is enabled, set the appropriate options
+      if ($options['use_pagination']) {
+        $api_options['limit'] = $options['items_per_page'];
+        $api_options['offset'] = ($options['page'] - 1) * $options['items_per_page'];
+      } elseif ($options['limit'] > 0) {
+        $api_options['limit'] = $options['limit'];
+      } else {
+        $api_options['limit'] = 0; // No limit
+      }
+      
+      // Count total available contacts if required
+      $total_count = 0;
+      if ($options['count_total']) {
+        $count_params = [
+          'contact_type' => ['IN' => (array) $options['contact_types']],
+          'is_deleted' => 0,
+          'options' => ['limit' => 0],
+          'return' => 'id',
+        ];
+        $count_result = civicrm_api3('Contact', 'getcount', $count_params);
+        $total_count = $count_result;
+      }
+      
+      // Get contacts in the system that match the specified contact types with pagination
       $contact_params = [
         'contact_type' => ['IN' => (array) $options['contact_types']],
         'is_deleted' => 0,
-        'options' => ['limit' => 0],
+        'options' => $api_options,
         'return' => ['id', 'display_name', 'sort_name', 'email', 'contact_type', 'contact_sub_type'],
       ];
       
-      if ($options['limit'] > 0) {
-        $contact_params['options']['limit'] = $options['limit'];
-      }
-      
       $all_contacts = civicrm_api3('Contact', 'get', $contact_params);
+      
+      // Store pagination metadata only if pagination is enabled
+      if ($options['use_pagination']) {
+        $matching_contacts['pagination_metadata'] = [
+          'current_page' => $options['page'],
+          'items_per_page' => $options['items_per_page'],
+          'total_count' => $total_count,
+          'total_pages' => $total_count > 0 ? ceil($total_count / $options['items_per_page']) : 0,
+        ];
+      }
       
       // For each contact, check if they have relationships to the same subtype contacts as the user
       foreach ($all_contacts['values'] as $potential_contact) {
