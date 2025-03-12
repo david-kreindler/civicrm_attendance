@@ -29,7 +29,9 @@
       // Handle search functionality.
       $('.civicrm-attendance-element-search-input', context).once('civicrm-attendance-element-search').on('keyup', function () {
         var searchText = $(this).val().toLowerCase();
-        $('.civicrm-attendance-element-contact-row').each(function () {
+        var $contactRows = $('.civicrm-attendance-element-contact-row', context);
+        
+        $contactRows.each(function () {
           var contactName = $(this).find('.civicrm-attendance-element-contact-name').text().toLowerCase();
           var contactEmail = $(this).find('.civicrm-attendance-element-contact-email').text().toLowerCase();
           var relationshipInfo = $(this).find('.civicrm-attendance-element-relationship').text().toLowerCase();
@@ -76,7 +78,7 @@
         var statusId = $bulkOperations.find('.civicrm-attendance-element-bulk-status-select').val();
         
         if (eventId && statusId) {
-          $('.civicrm-attendance-element-status-select').each(function () {
+          $('.civicrm-attendance-element-status-select', context).each(function () {
             if ($(this).data('event-id') == eventId) {
               $(this).val(statusId)
                 .attr('value', statusId)
