@@ -36,6 +36,8 @@ class CivicrmAttendanceElement extends WebformElementBase {
       'include_inactive_relationships' => FALSE,
       'event_start_date' => '',
       'event_end_date' => '',
+      'pagination' => TRUE,
+      'items_per_page' => 25,
     ] + parent::getDefaultProperties();
   }
 
@@ -121,6 +123,27 @@ class CivicrmAttendanceElement extends WebformElementBase {
       '#default_value' => TRUE,
     ];
     
+    $form['display']['pagination'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable pagination'),
+      '#description' => $this->t('Enable pagination for large contact sets. Recommended for better performance when dealing with many contacts.'),
+      '#default_value' => TRUE,
+    ];
+    
+    $form['display']['items_per_page'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Contacts per page'),
+      '#description' => $this->t('Number of contacts to display per page when pagination is enabled.'),
+      '#default_value' => 25,
+      '#min' => 5,
+      '#max' => 250,
+      '#states' => [
+        'visible' => [
+          ':input[name="properties[display][pagination]"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+    
     $form['relationship_filtering'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Relationship Filtering Settings'),
@@ -190,9 +213,26 @@ class CivicrmAttendanceElement extends WebformElementBase {
       'relationship_type_ids' => $relationship_type_ids,
       'contact_subtypes' => $contact_subtype_keys,
       'include_inactive' => !empty($element['#include_inactive_relationships']),
+      'use_pagination' => !empty($element['#pagination']),
+      'items_per_page' => !empty($element['#items_per_page']) ? $element['#items_per_page'] : 25,
+      'page' => isset($_GET['page']) ? (int) $_GET['page'] : 1,
     ];
     
-    $element['#contacts'] = $civicrm_api->getPeerContacts($contact_id, $filtering_options);
+    // Ensure page is at least 1
+    if ($filtering_options['page'] < 1) {
+      $filtering_options['page'] = 1;
+    }
+    
+    $contacts_data = $civicrm_api->getPeerContacts($contact_id, $filtering_options);
+    
+    // Extract pagination metadata if it exists
+    if (isset($contacts_data['pagination_metadata'])) {
+      $element['#pagination_metadata'] = $contacts_data['pagination_metadata'];
+      unset($contacts_data['pagination_metadata']);
+      $element['#contacts'] = array_values($contacts_data);
+    } else {
+      $element['#contacts'] = $contacts_data;
+    }
 
     // Get events, applying date range filtering if specified.
     $event_ids = array_keys(array_filter($element['#events']));
@@ -244,6 +284,8 @@ class CivicrmAttendanceElement extends WebformElementBase {
     $element['#allow_bulk_operations'] = $element['#allow_bulk_operations'] ?? TRUE;
     $element['#show_relationship_info'] = $element['#show_relationship_info'] ?? TRUE;
     $element['#show_search'] = $element['#show_search'] ?? TRUE;
+    $element['#pagination'] = $element['#pagination'] ?? TRUE;
+    $element['#items_per_page'] = $element['#items_per_page'] ?? 25;
   }
 
   /**
@@ -476,6 +518,14 @@ class CivicrmAttendanceElement extends WebformElementBase {
       '#include_inactive_relationships' => FALSE,
       '#event_start_date' => '',
       '#event_end_date' => '',
+      '#pagination' => TRUE,
+      '#items_per_page' => 25,
+      '#pagination_metadata' => [
+        'current_page' => 1,
+        'items_per_page' => 25,
+        'total_count' => 0,
+        'total_pages' => 0,
+      ],
     ];
   }
 
