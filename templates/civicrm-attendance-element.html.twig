@@ -28,6 +28,16 @@
       </div>
     {% endif %}
     
+    {# Display pagination info if available #}
+    {% if pagination_metadata is defined and pagination_metadata and pagination_metadata.total_count > 0 %}
+      <div class="civicrm-attendance-element-pagination-info">
+        <span class="pagination-summary">
+          {{ 'Showing'|t }} {{ ((pagination_metadata.current_page - 1) * pagination_metadata.items_per_page) + 1 }}-{{ ((pagination_metadata.current_page - 1) * pagination_metadata.items_per_page) + contacts|length }} 
+          {{ 'of'|t }} {{ pagination_metadata.total_count }} {{ 'contacts'|t }}
+        </span>
+      </div>
+    {% endif %}
+    
     <div class="civicrm-attendance-element-container">
       <table class="civicrm-attendance-element-table">
         <thead>
@@ -127,6 +137,78 @@
         <div class="civicrm-attendance-element-bulk-operation">
           <button type="button" class="civicrm-attendance-element-bulk-apply-button button" disabled>{{ 'Apply'|t }}</button>
         </div>
+      </div>
+    {% endif %}
+    
+    {# Display pagination controls if available #}
+    {% if pagination_metadata is defined and pagination_metadata and pagination_metadata.total_pages > 1 %}
+      <div class="civicrm-attendance-element-pagination">
+        <nav class="pager" role="navigation">
+          <ul class="pager__items">
+            {# First page link #}
+            {% if pagination_metadata.current_page > 1 %}
+              <li class="pager__item pager__item--first">
+                <a href="?page=1" title="{{ 'Go to first page'|t }}">« {{ 'First'|t }}</a>
+              </li>
+            {% else %}
+              <li class="pager__item pager__item--first disabled">
+                <span>« {{ 'First'|t }}</span>
+              </li>
+            {% endif %}
+            
+            {# Previous page link #}
+            {% if pagination_metadata.current_page > 1 %}
+              <li class="pager__item pager__item--previous">
+                <a href="?page={{ pagination_metadata.current_page - 1 }}" title="{{ 'Go to previous page'|t }}">‹ {{ 'Previous'|t }}</a>
+              </li>
+            {% else %}
+              <li class="pager__item pager__item--previous disabled">
+                <span>‹ {{ 'Previous'|t }}</span>
+              </li>
+            {% endif %}
+            
+            {# Numbered page links #}
+            {% set start_page = max(1, pagination_metadata.current_page - 2) %}
+            {% set end_page = min(pagination_metadata.total_pages, start_page + 4) %}
+            {% if end_page - start_page < 4 %}
+              {% set start_page = max(1, end_page - 4) %}
+            {% endif %}
+            
+            {% for page in start_page..end_page %}
+              {% if page == pagination_metadata.current_page %}
+                <li class="pager__item is-active">
+                  <span>{{ page }}</span>
+                </li>
+              {% else %}
+                <li class="pager__item">
+                  <a href="?page={{ page }}" title="{{ 'Go to page @page'|t({'@page': page}) }}">{{ page }}</a>
+                </li>
+              {% endif %}
+            {% endfor %}
+            
+            {# Next page link #}
+            {% if pagination_metadata.current_page < pagination_metadata.total_pages %}
+              <li class="pager__item pager__item--next">
+                <a href="?page={{ pagination_metadata.current_page + 1 }}" title="{{ 'Go to next page'|t }}">{{ 'Next'|t }} ›</a>
+              </li>
+            {% else %}
+              <li class="pager__item pager__item--next disabled">
+                <span>{{ 'Next'|t }} ›</span>
+              </li>
+            {% endif %}
+            
+            {# Last page link #}
+            {% if pagination_metadata.current_page < pagination_metadata.total_pages %}
+              <li class="pager__item pager__item--last">
+                <a href="?page={{ pagination_metadata.total_pages }}" title="{{ 'Go to last page'|t }}">{{ 'Last'|t }} »</a>
+              </li>
+            {% else %}
+              <li class="pager__item pager__item--last disabled">
+                <span>{{ 'Last'|t }} »</span>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
       </div>
     {% endif %}
   </div>
