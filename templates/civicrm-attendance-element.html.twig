@@ -53,16 +53,36 @@
               
               {% if show_relationship_info %}
                 <td class="civicrm-attendance-element-relationship">
-                  <div class="civicrm-attendance-element-relationship-type">{{ contact.relationship.relationship_type }}</div>
-                  {% if contact.relationship.start_date or contact.relationship.end_date %}
-                    <div class="civicrm-attendance-element-relationship-dates">
-                      {% if contact.relationship.start_date %}
-                        <span class="civicrm-attendance-element-relationship-start-date">{{ 'From'|t }}: {{ contact.relationship.start_date }}</span>
-                      {% endif %}
-                      {% if contact.relationship.end_date %}
-                        <span class="civicrm-attendance-element-relationship-end-date">{{ 'To'|t }}: {{ contact.relationship.end_date }}</span>
+                  {% if contact.relationships is defined and contact.relationships|length %}
+                    {% set relationship = contact.relationships|first %}
+                    <div class="civicrm-attendance-element-relationship-type">
+                      {{ relationship.relationship_name }}
+                      {% if relationship.related_contact is defined %}
+                        ({{ 'with'|t }} {{ relationship.related_contact.display_name }})
                       {% endif %}
                     </div>
+                    {% if relationship.start_date or relationship.end_date %}
+                      <div class="civicrm-attendance-element-relationship-dates">
+                        {% if relationship.start_date %}
+                          <span class="civicrm-attendance-element-relationship-start-date">{{ 'From'|t }}: {{ relationship.start_date }}</span>
+                        {% endif %}
+                        {% if relationship.end_date %}
+                          <span class="civicrm-attendance-element-relationship-end-date">{{ 'To'|t }}: {{ relationship.end_date }}</span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                  {% elseif contact.relationship is defined %}
+                    <div class="civicrm-attendance-element-relationship-type">{{ contact.relationship.relationship_type }}</div>
+                    {% if contact.relationship.start_date or contact.relationship.end_date %}
+                      <div class="civicrm-attendance-element-relationship-dates">
+                        {% if contact.relationship.start_date %}
+                          <span class="civicrm-attendance-element-relationship-start-date">{{ 'From'|t }}: {{ contact.relationship.start_date }}</span>
+                        {% endif %}
+                        {% if contact.relationship.end_date %}
+                          <span class="civicrm-attendance-element-relationship-end-date">{{ 'To'|t }}: {{ contact.relationship.end_date }}</span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
                   {% endif %}
                 </td>
               {% endif %}
@@ -112,6 +132,6 @@
   </div>
 {% else %}
   <div class="civicrm-attendance-element-empty">
-    {{ 'No contacts found with the specified relationship types and contact subtypes.'|t }}
+    {{ 'No contacts found with the specified relationship patterns. This could be because: (1) you do not have a relationship with a contact of the selected subtype, or (2) there are no other contacts who have the specified relationship types with the same contact.'|t }}
   </div>
 {% endif %}
